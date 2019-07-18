@@ -18,13 +18,22 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
 //#define _DEBUG
+volatile uint8_t m_gamepad_updated = 0;
+volatile uint8_t m_usb_report_need_update = 0;
+
+static void delay_us()
+{
+    for(volatile uint16_t i = 0; i < 100; ++i);
+}
 
 #ifdef NES
 #define readTwoGamepads(byte1, port1, latch1, clk1, data1       \
                         , byte2, port2, latch2, clk2, data2)    \
         HAL_GPIO_WritePin(port1, latch1, GPIO_PIN_SET);         \
         HAL_GPIO_WritePin(port2, latch2, GPIO_PIN_SET);         \
+        delay_us();\
         HAL_GPIO_WritePin(port1, latch1, GPIO_PIN_RESET);       \
         HAL_GPIO_WritePin(port2, latch2, GPIO_PIN_RESET);       \
                                                                 \
@@ -32,17 +41,22 @@
         byte2 = 0;                                              \
         for(int i = 0; i < 8; ++i) {                            \
             {                                                   \
+            delay_us();\
+            HAL_GPIO_WritePin(port1, clk1, GPIO_PIN_RESET);       \
+            HAL_GPIO_WritePin(port2, clk2, GPIO_PIN_RESET);       \
             const uint8_t bit = HAL_GPIO_ReadPin(port1, data1); \
             byte1 |= ((bit & 0x1) << i);                        \
+                if (bit) { HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, bit ? GPIO_PIN_SET : GPIO_PIN_RESET); \
+            } \
             }                                                   \
             {                                                   \
             const uint8_t bit = HAL_GPIO_ReadPin(port2, data2); \
             byte2 |= ((bit & 0x1) << i);                        \
+            if (bit) { HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, bit ? GPIO_PIN_SET : GPIO_PIN_RESET); \
+            } \
             }                                                   \
-            HAL_GPIO_WritePin(port1, clk1, GPIO_PIN_RESET);     \
-            HAL_GPIO_WritePin(port2, clk2, GPIO_PIN_RESET);     \
-            HAL_GPIO_WritePin(port1, clk1, GPIO_PIN_SET);       \
-            HAL_GPIO_WritePin(port2, clk2, GPIO_PIN_SET);       \
+            HAL_GPIO_WritePin(port1, clk1, GPIO_PIN_SET);     \
+            HAL_GPIO_WritePin(port2, clk2, GPIO_PIN_SET);     \
         }
 
 #elif defined(SEGA)
@@ -137,9 +151,9 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
-uint8_t byte1 = 0;
-uint8_t byte2 = 0;
-uint8_t rep[8] = {0};
+volatile uint8_t byte1 = 0;
+volatile uint8_t byte2 = 0;
+volatile uint8_t rep[8] = {0};
 
 #define    DWT_CYCCNT    *(volatile unsigned long *)0xE0001004
 #define    DWT_CONTROL   *(volatile unsigned long *)0xE0001000
@@ -165,26 +179,10 @@ void TIM2_IRQHandler(void)
   /* USER CODE BEGIN TIM2_IRQn 0 */
 
   /* USER CODE END TIM2_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim2_gamepad);
+    HAL_TIM_IRQHandler(&htim2_gamepad);
   /* USER CODE BEGIN TIM2_IRQn 1 */
-#if !TWO_GAMEPAD
-    readGamepad(byte1, GPIOA, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6)
-#else
-    #ifdef NES
-        readTwoGamepads(byte1, GPIOA, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6
-                        , byte2, GPIOB, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_10)
-    #elif defined(SEGA)
-        static uint32_t polling_st = 0;
-        if (!polling_st)
-            polling_st = DWT->CYCCNT;
-        while((DWT->CYCCNT - polling_st) > ((SystemCoreClock/1000000L) * 1100)) {
-            readTwoGamepadsAtSEGA(byte1, GPIOA, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6, GPIO_PIN_7
-                        , byte2, GPIOB, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_10)
-            polling_st = 0;
-        }
-    #endif //SEGA
-#endif //!TWO_GAMEPAD
-    /* USER CODE END TIM2_IRQn 1 */
+    m_gamepad_updated = 1;
+  /* USER CODE END TIM2_IRQn 1 */
 }
 
 void TIM4_IRQHandler(void)
@@ -194,77 +192,76 @@ void TIM4_IRQHandler(void)
   /* USER CODE END TIM4_IRQn 0 */
     HAL_TIM_IRQHandler(&htim4_usb);
   /* USER CODE BEGIN TIM4_IRQn 1 */
-
-#ifdef NES
-    rep[3] = (~byte1 & 0x0F);
-    rep[7] = (~byte2 & 0x0F);
-
-    // Y
-    if (!((byte1 >> 4) & 1)) {
-        rep[2] = (uint8_t)(-127);
-    } else if (!((byte1 >> 5) & 1)) {
-        rep[2] = (uint8_t)(127);
-    } else {
-        rep[2] = 0x00;
-    }
-
-    // X
-    if (!((byte1 >> 6) & 1)) {
-        rep[1] = (uint8_t)(-127);
-    } else if (!((byte1 >> 7) & 1)) {
-        rep[1] = (uint8_t)(127);
-    } else {
-        rep[1] = 0x00;
-    }
+    m_usb_report_need_update = 1;
     
-    // Y
-    if (!((byte2 >> 4) & 1)) {
-        rep[6] = (uint8_t)(-127);
-    } else if (!((byte2 >> 5) & 1)) {
-        rep[6] = (uint8_t)(127);
-    } else {
-        rep[6] = 0x00;
-    }
+     #ifdef NES
+        rep[3] = (~byte1 & 0x0F);
+        rep[7] = (~byte2 & 0x0F);
 
-    // X
-    if (!((byte2 >> 6) & 1)) {
-        rep[5] = (uint8_t)(-127);
-    } else if (!((byte2 >> 7) & 1)) {
-        rep[5] = (uint8_t)(127);
-    } else {
-        rep[5] = 0x00;
-    }
+        // Y
+        if (!((byte1 >> 4) & 1)) {
+            rep[2] = (uint8_t)(-127);
+        } else if (!((byte1 >> 5) & 1)) {
+            rep[2] = (uint8_t)(127);
+        } else {
+            rep[2] = 0x00;
+        }
 
-    rep[0] = 1;
-    rep[4] = 2;
-    USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, rep, sizeof(rep));
-#elif defined(SEGA)
-    rep[3] = (~byte2);
-    rep[3] = 0x00;
+        // X
+        if (!((byte1 >> 6) & 1)) {
+            rep[1] = (uint8_t)(-127);
+        } else if (!((byte1 >> 7) & 1)) {
+            rep[1] = (uint8_t)(127);
+        } else {
+            rep[1] = 0x00;
+        }
+        
+        // Y
+        if (!((byte2 >> 4) & 1)) {
+            rep[6] = (uint8_t)(-127);
+        } else if (!((byte2 >> 5) & 1)) {
+            rep[6] = (uint8_t)(127);
+        } else {
+            rep[6] = 0x00;
+        }
 
-    // Y
-    if (!((byte1 >> 0) & 1)) {
-        rep[2] = (uint8_t)(-127);
-    } else if (!((byte1 >> 1) & 1)) {
-        rep[2] = (uint8_t)(127);
-    } else {
-        rep[2] = 0x00;
-    }
+        // X
+        if (!((byte2 >> 6) & 1)) {
+            rep[5] = (uint8_t)(-127);
+        } else if (!((byte2 >> 7) & 1)) {
+            rep[5] = (uint8_t)(127);
+        } else {
+            rep[5] = 0x00;
+        }
 
-    // X
-    if (!((byte1 >> 2) & 1)) {
-        rep[1] = (uint8_t)(-127);
-    } else if (!((byte1 >> 3) & 1)) {
-        rep[1] = (uint8_t)(127);
-    } else {
-        rep[1] = 0x00;
-    }
+        rep[0] = 1;
+        rep[4] = 2;
+    #elif defined(SEGA)
+        rep[3] = (~byte2);
+        rep[3] = 0x00;
 
-    rep[0] = 1;
-    rep[4] = 2;
-    memcpy(&rep[5], rep, 3);
-    USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, rep, sizeof(rep));
-#endif
+        // Y
+        if (!((byte1 >> 0) & 1)) {
+            rep[2] = (uint8_t)(-127);
+        } else if (!((byte1 >> 1) & 1)) {
+            rep[2] = (uint8_t)(127);
+        } else {
+            rep[2] = 0x00;
+        }
+
+        // X
+        if (!((byte1 >> 2) & 1)) {
+            rep[1] = (uint8_t)(-127);
+        } else if (!((byte1 >> 3) & 1)) {
+            rep[1] = (uint8_t)(127);
+        } else {
+            rep[1] = 0x00;
+        }
+
+        rep[0] = 1;
+        rep[4] = 2;
+        memcpy(&rep[5], rep, 3);
+    #endif
   /* USER CODE END TIM4_IRQn 1 */
 }
 
@@ -397,6 +394,73 @@ int main(void)
         }
 #endif
 
+    if (1 || m_gamepad_updated) {
+        //__disable_irq();
+        m_gamepad_updated = 0;
+        #if !TWO_GAMEPAD
+            readGamepad(byte1, GPIOA, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6)
+        #else
+            #ifdef NES
+                readTwoGamepads(byte1, GPIOA, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6
+                                , byte2, GPIOB, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_10)
+            #elif defined(SEGA)
+                static uint32_t polling_st = 0;
+                if (!polling_st)
+                    polling_st = DWT->CYCCNT;
+                while((DWT->CYCCNT - polling_st) > ((SystemCoreClock/1000000L) * 1100)) {
+                    readTwoGamepadsAtSEGA(byte1, GPIOA, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6, GPIO_PIN_7
+                                , byte2, GPIOB, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_10)
+                    polling_st = 0;
+                }
+            #endif //SEGA
+        #endif //!TWO_GAMEPAD
+       //__enable_irq();
+    }
+    
+    rep[3] = (~byte1 & 0x0F);
+        rep[7] = (~byte2 & 0x0F);
+
+        // Y
+        if (!((byte1 >> 4) & 1)) {
+            rep[2] = (uint8_t)(-127);
+        } else if (!((byte1 >> 5) & 1)) {
+            rep[2] = (uint8_t)(127);
+        } else {
+            rep[2] = 0x00;
+        }
+
+        // X
+        if (!((byte1 >> 6) & 1)) {
+            rep[1] = (uint8_t)(-127);
+        } else if (!((byte1 >> 7) & 1)) {
+            rep[1] = (uint8_t)(127);
+        } else {
+            rep[1] = 0x00;
+        }
+        
+        // Y
+        if (!((byte2 >> 4) & 1)) {
+            rep[6] = (uint8_t)(-127);
+        } else if (!((byte2 >> 5) & 1)) {
+            rep[6] = (uint8_t)(127);
+        } else {
+            rep[6] = 0x00;
+        }
+
+        // X
+        if (!((byte2 >> 6) & 1)) {
+            rep[5] = (uint8_t)(-127);
+        } else if (!((byte2 >> 7) & 1)) {
+            rep[5] = (uint8_t)(127);
+        } else {
+            rep[5] = 0x00;
+        }
+
+        rep[0] = 1;
+        rep[4] = 2;
+        memset((uint8_t *)&rep[5], 0xFF, 3);
+        USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *)rep, sizeof(rep));
+    HAL_Delay(16);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -508,7 +572,7 @@ static void MX_TIM2_gamepad_Init(void)
   htim2_gamepad.Instance = TIM2;
   htim2_gamepad.Init.Prescaler = 71999;
   htim2_gamepad.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2_gamepad.Init.Period = 1;
+  htim2_gamepad.Init.Period = 100;
   htim2_gamepad.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2_gamepad.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2_gamepad) != HAL_OK)
