@@ -25,7 +25,7 @@ volatile uint8_t m_usb_report_need_update = 0;
 
 static void delay_us()
 {
-    for(volatile uint16_t i = 0; i < 100; ++i);
+    for(volatile uint16_t i = 0; i < 38; ++i);
 }
 
 #ifdef NES
@@ -139,8 +139,6 @@ static void delay_us()
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-
-SPI_HandleTypeDef hspi2;
 
 TIM_HandleTypeDef htim2_gamepad;
         
@@ -273,7 +271,6 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM2_gamepad_Init(void);
 static void MX_TIM4_usb_Init(void);
-static void MX_SPI2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -318,12 +315,12 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM2_gamepad_Init();
   MX_TIM4_usb_Init();
-  MX_SPI2_Init();
+
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start(&htim2_gamepad);
-  HAL_TIM_Base_Start_IT(&htim2_gamepad);
-  HAL_TIM_Base_Start(&htim4_usb);
-  HAL_TIM_Base_Start_IT(&htim4_usb);
+  //HAL_TIM_Base_Start(&htim2_gamepad);
+  //HAL_TIM_Base_Start_IT(&htim2_gamepad);
+  //HAL_TIM_Base_Start(&htim4_usb);
+  //HAL_TIM_Base_Start_IT(&htim4_usb);
    
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -458,7 +455,6 @@ int main(void)
 
         rep[0] = 1;
         rep[4] = 2;
-        memset((uint8_t *)&rep[5], 0xFF, 3);
         USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *)rep, sizeof(rep));
     HAL_Delay(16);
     /* USER CODE END WHILE */
@@ -511,44 +507,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief SPI2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_SPI2_Init(void)
-{
-
-  /* USER CODE BEGIN SPI2_Init 0 */
-
-  /* USER CODE END SPI2_Init 0 */
-
-  /* USER CODE BEGIN SPI2_Init 1 */
-
-  /* USER CODE END SPI2_Init 1 */
-  /* SPI2 parameter configuration*/
-  hspi2.Instance = SPI2;
-  hspi2.Init.Mode = SPI_MODE_MASTER;
-  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi2.Init.NSS = SPI_NSS_HARD_OUTPUT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi2.Init.CRCPolynomial = 10;
-  if (HAL_SPI_Init(&hspi2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN SPI2_Init 2 */
-
-  /* USER CODE END SPI2_Init 2 */
-
 }
 
 /**
@@ -691,7 +649,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = GPIO_PIN_13;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
 #ifdef NES
@@ -705,7 +663,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA6 */
@@ -718,7 +676,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PB10 */
@@ -747,14 +705,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = GPIO_PIN_3;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
   
   /*Configure GPIO pin : FIRST_JOY: PA4 */
   GPIO_InitStruct.Pin = GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 #endif
 }
