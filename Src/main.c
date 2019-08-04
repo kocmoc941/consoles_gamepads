@@ -1,12 +1,30 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * <h2><center>&copy; Copyright (c) 2019 STMicroelectronics.
+  * All rights reserved.</center></h2>
+  *
+  * This software component is licensed by ST under Ultimate Liberty license
+  * SLA0044, the "License"; You may not use this file except in compliance with
+  * the License. You may obtain a copy of the License at:
+  *                             www.st.com/SLA0044
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
-#include "usbd_customhid.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "usbd_custom_hid_if.h"
 #include "config.h"
 
 /* USER CODE END Includes */
@@ -23,27 +41,30 @@
 volatile uint8_t m_gamepad_updated = 0;
 volatile uint8_t m_usb_report_need_update = 0;
 
-static void delay_us()
+void DWT_Init(void);
+void delayUS_DWT(uint32_t us);
+    
+static void delay_us(uint32_t us)
 {
-    for(volatile uint16_t i = 0; i < 38; ++i);
+    DWT_Init();
+    delayUS_DWT(us);
 }
 
-#ifdef NES
 #define readTwoGamepads(byte1, port1, latch1, clk1, data1       \
                         , byte2, port2, latch2, clk2, data2)    \
         HAL_GPIO_WritePin(port1, latch1, GPIO_PIN_SET);         \
         HAL_GPIO_WritePin(port2, latch2, GPIO_PIN_SET);         \
-        delay_us();\
+        delay_us(5);\
         HAL_GPIO_WritePin(port1, latch1, GPIO_PIN_RESET);       \
         HAL_GPIO_WritePin(port2, latch2, GPIO_PIN_RESET);       \
-                                                                \
+        delay_us(5);\
         byte1 = 0;                                              \
         byte2 = 0;                                              \
         for(int i = 0; i < 8; ++i) {                            \
             {                                                   \
-            delay_us();\
             HAL_GPIO_WritePin(port1, clk1, GPIO_PIN_RESET);       \
             HAL_GPIO_WritePin(port2, clk2, GPIO_PIN_RESET);       \
+            delay_us(3);\
             const uint8_t bit = HAL_GPIO_ReadPin(port1, data1); \
             byte1 |= ((bit & 0x1) << i);                        \
                 if (bit) { HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, bit ? GPIO_PIN_SET : GPIO_PIN_RESET); \
@@ -57,79 +78,63 @@ static void delay_us()
             }                                                   \
             HAL_GPIO_WritePin(port1, clk1, GPIO_PIN_SET);     \
             HAL_GPIO_WritePin(port2, clk2, GPIO_PIN_SET);     \
+            delay_us(5);\
         }
 
-#elif defined(SEGA)
-#define readTwoGamepadsAtSEGA(byte1, port1, sel, up_z, down_y, left_x \
-                        , byte2, port2, right_mode, A_B, C_start)     \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);                  \
-        delayUS_DWT(20);                                              \
-                                                                      \
-        byte1 = 0;                                                    \
-        byte2 = 0;                                                    \
-        const uint8_t up = HAL_GPIO_ReadPin(port1, up_z);             \
-        const uint8_t down = HAL_GPIO_ReadPin(port1, down_y);         \
-        const uint8_t left = HAL_GPIO_ReadPin(port1, left_x);         \
-        const uint8_t right = HAL_GPIO_ReadPin(port2, right_mode);    \
-        const uint8_t B = HAL_GPIO_ReadPin(port2, A_B);               \
-        const uint8_t C = HAL_GPIO_ReadPin(port2, C_start);           \
-        byte1 |= (up << 0);                                           \
-        byte1 |= (down << 1);                                         \
-        byte1 |= (left << 2);                                         \
-        byte1 |= (right << 3);                                        \
-        byte2 |= (C << 2);                                            \
-        byte2 |= (B << 1);                                      \
-                                                                \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
-        delayUS_DWT(20);                                        \
-                                                                \
-        const uint8_t A = HAL_GPIO_ReadPin(port2, A_B);         \
-        const uint8_t START = HAL_GPIO_ReadPin(port2, C_start); \
-        byte2 |= (A << 0);/*A*/                                 \
-        byte2 |= (START << 3);/*START*/                         \
-                                                                \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
-        delayUS_DWT(20);                                        \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
-        delayUS_DWT(20);                                        \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
-        delayUS_DWT(20);                                        \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
-        delayUS_DWT(20);                                        \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
-        delayUS_DWT(20);                                        \
-                                                                \
-        const uint8_t Z = HAL_GPIO_ReadPin(port1, up_z);        \
-        const uint8_t Y = HAL_GPIO_ReadPin(port1, down_y);      \
-        const uint8_t X = HAL_GPIO_ReadPin(port1, left_x);      \
-        const uint8_t MODE = HAL_GPIO_ReadPin(port2, right_mode); \
-        byte2 |= (X << 4); /*X*/                                \
-        byte2 |= (Y << 5); /*Y*/                                \
-        byte2 |= (Z << 6); /*Z*/                                \
-        byte2 |= (MODE << 7); /*MODE*/                          \
-                                                                \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
-        delayUS_DWT(20);                                        \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
-        delayUS_DWT(20);
-
-#endif
-
-#if !defined(SEGA) && !defined(NES)
-    error: must be defined NES or SEGA
-#endif
-
-#define readGamepad(byte, port, latch, clk, data)               \
-        HAL_GPIO_WritePin(port, latch, GPIO_PIN_SET);           \
-        HAL_GPIO_WritePin(port, latch, GPIO_PIN_RESET);         \
-                                                                \
-        byte = 0;                                               \
-        for(int i = 0; i < 8; ++i) {                            \
-            const uint8_t bit = HAL_GPIO_ReadPin(port, data);   \
-            byte |= ((bit & 0x1) << i);                         \
-            HAL_GPIO_WritePin(port, clk, GPIO_PIN_RESET);       \
-            HAL_GPIO_WritePin(port, clk, GPIO_PIN_SET);         \
-        }                                                       \
+//#define readTwoGamepadsAtSEGA(byte1, port1, sel, up_z, down_y, left_x \
+//                        , byte2, port2, right_mode, A_B, C_start)     \
+//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);                  \
+//        delayUS_DWT(20);                                              \
+//                                                                      \
+//        byte1 = 0;                                                    \
+//        byte2 = 0;                                                    \
+//        const uint8_t up = HAL_GPIO_ReadPin(port1, up_z);             \
+//        const uint8_t down = HAL_GPIO_ReadPin(port1, down_y);         \
+//        const uint8_t left = HAL_GPIO_ReadPin(port1, left_x);         \
+//        const uint8_t right = HAL_GPIO_ReadPin(port2, right_mode);    \
+//        const uint8_t B = HAL_GPIO_ReadPin(port2, A_B);               \
+//        const uint8_t C = HAL_GPIO_ReadPin(port2, C_start);           \
+//        byte1 |= (up << 0);                                           \
+//        byte1 |= (down << 1);                                         \
+//        byte1 |= (left << 2);                                         \
+//        byte1 |= (right << 3);                                        \
+//        byte2 |= (C << 2);                                            \
+//        byte2 |= (B << 1);                                      \
+//                                                                \
+//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
+//        delayUS_DWT(20);                                        \
+//                                                                \
+//        const uint8_t A = HAL_GPIO_ReadPin(port2, A_B);         \
+//        const uint8_t START = HAL_GPIO_ReadPin(port2, C_start); \
+//        byte2 |= (A << 0);/*A*/                                 \
+//        byte2 |= (START << 3);/*START*/                         \
+//                                                                \
+//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
+//        delayUS_DWT(20);                                        \
+//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
+//        delayUS_DWT(20);                                        \
+//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
+//        delayUS_DWT(20);                                        \
+//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
+//        delayUS_DWT(20);                                        \
+//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
+//        delayUS_DWT(20);                                        \
+//                                                                \
+//        const uint8_t Z = HAL_GPIO_ReadPin(port1, up_z);        \
+//        const uint8_t Y = HAL_GPIO_ReadPin(port1, down_y);      \
+//        const uint8_t X = HAL_GPIO_ReadPin(port1, left_x);      \
+//        const uint8_t MODE = HAL_GPIO_ReadPin(port2, right_mode); \
+//        byte2 |= (X << 4); /*X*/                                \
+//        byte2 |= (Y << 5); /*Y*/                                \
+//        byte2 |= (Z << 6); /*Z*/                                \
+//        byte2 |= (MODE << 7); /*MODE*/                          \
+//                                                                \
+//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
+//        delayUS_DWT(20);                                        \
+//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
+//        delayUS_DWT(20);
+//
+//#endif
 
 /* USER CODE END PD */
 
@@ -140,18 +145,16 @@ static void delay_us()
 
 /* Private variables ---------------------------------------------------------*/
 
-TIM_HandleTypeDef htim2_gamepad;
-        
-TIM_HandleTypeDef htim4_usb;
-
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+TIM_HandleTypeDef htim2_gamepad;
+
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
 volatile uint8_t byte1 = 0;
 volatile uint8_t byte2 = 0;
-volatile uint8_t rep[8] = {0};
+volatile uint8_t rep[16] = {0};
 
 #define    DWT_CYCCNT    *(volatile unsigned long *)0xE0001004
 #define    DWT_CONTROL   *(volatile unsigned long *)0xE0001000
@@ -172,105 +175,20 @@ void delayUS_DWT(uint32_t us) {
 }
 
 
-void TIM2_IRQHandler(void)
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  /* USER CODE BEGIN TIM2_IRQn 0 */
-
-  /* USER CODE END TIM2_IRQn 0 */
-    HAL_TIM_IRQHandler(&htim2_gamepad);
-  /* USER CODE BEGIN TIM2_IRQn 1 */
-    m_gamepad_updated = 1;
-  /* USER CODE END TIM2_IRQn 1 */
+    if(htim->Instance == TIM2) {
+        m_gamepad_updated = 1;
+    }
 }
-
-void TIM4_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM4_IRQn 0 */
-
-  /* USER CODE END TIM4_IRQn 0 */
-    HAL_TIM_IRQHandler(&htim4_usb);
-  /* USER CODE BEGIN TIM4_IRQn 1 */
-    m_usb_report_need_update = 1;
     
-     #ifdef NES
-        rep[3] = (~byte1 & 0x0F);
-        rep[7] = (~byte2 & 0x0F);
-
-        // Y
-        if (!((byte1 >> 4) & 1)) {
-            rep[2] = (uint8_t)(-127);
-        } else if (!((byte1 >> 5) & 1)) {
-            rep[2] = (uint8_t)(127);
-        } else {
-            rep[2] = 0x00;
-        }
-
-        // X
-        if (!((byte1 >> 6) & 1)) {
-            rep[1] = (uint8_t)(-127);
-        } else if (!((byte1 >> 7) & 1)) {
-            rep[1] = (uint8_t)(127);
-        } else {
-            rep[1] = 0x00;
-        }
-        
-        // Y
-        if (!((byte2 >> 4) & 1)) {
-            rep[6] = (uint8_t)(-127);
-        } else if (!((byte2 >> 5) & 1)) {
-            rep[6] = (uint8_t)(127);
-        } else {
-            rep[6] = 0x00;
-        }
-
-        // X
-        if (!((byte2 >> 6) & 1)) {
-            rep[5] = (uint8_t)(-127);
-        } else if (!((byte2 >> 7) & 1)) {
-            rep[5] = (uint8_t)(127);
-        } else {
-            rep[5] = 0x00;
-        }
-
-        rep[0] = 1;
-        rep[4] = 2;
-    #elif defined(SEGA)
-        rep[3] = (~byte2);
-        rep[3] = 0x00;
-
-        // Y
-        if (!((byte1 >> 0) & 1)) {
-            rep[2] = (uint8_t)(-127);
-        } else if (!((byte1 >> 1) & 1)) {
-            rep[2] = (uint8_t)(127);
-        } else {
-            rep[2] = 0x00;
-        }
-
-        // X
-        if (!((byte1 >> 2) & 1)) {
-            rep[1] = (uint8_t)(-127);
-        } else if (!((byte1 >> 3) & 1)) {
-            rep[1] = (uint8_t)(127);
-        } else {
-            rep[1] = 0x00;
-        }
-
-        rep[0] = 1;
-        rep[4] = 2;
-        memcpy(&rep[5], rep, 3);
-    #endif
-  /* USER CODE END TIM4_IRQn 1 */
-}
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
-static void MX_TIM2_gamepad_Init(void);
-static void MX_TIM4_usb_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -289,6 +207,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
+  
 
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -308,20 +227,14 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-
-  DWT_Init();
-
   MX_USB_DEVICE_Init();
   MX_USART2_UART_Init();
-  MX_TIM2_gamepad_Init();
-  MX_TIM4_usb_Init();
-
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  //HAL_TIM_Base_Start(&htim2_gamepad);
-  //HAL_TIM_Base_Start_IT(&htim2_gamepad);
-  //HAL_TIM_Base_Start(&htim4_usb);
-  //HAL_TIM_Base_Start_IT(&htim4_usb);
-   
+
+  HAL_TIM_Base_Start_IT(&htim2_gamepad);
+  /* USER CODE END 2 */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
@@ -391,29 +304,13 @@ int main(void)
         }
 #endif
 
-    if (1 || m_gamepad_updated) {
+    if (m_gamepad_updated) {
         //__disable_irq();
         m_gamepad_updated = 0;
-        #if !TWO_GAMEPAD
-            readGamepad(byte1, GPIOA, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6)
-        #else
-            #ifdef NES
-                readTwoGamepads(byte1, GPIOA, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6
-                                , byte2, GPIOB, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_10)
-            #elif defined(SEGA)
-                static uint32_t polling_st = 0;
-                if (!polling_st)
-                    polling_st = DWT->CYCCNT;
-                while((DWT->CYCCNT - polling_st) > ((SystemCoreClock/1000000L) * 1100)) {
-                    readTwoGamepadsAtSEGA(byte1, GPIOA, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6, GPIO_PIN_7
-                                , byte2, GPIOB, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_10)
-                    polling_st = 0;
-                }
-            #endif //SEGA
-        #endif //!TWO_GAMEPAD
+        readTwoGamepads(byte1, GPIOA, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6
+                        , byte2, GPIOB, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_10)
        //__enable_irq();
-    }
-    
+    memset((void *)rep, 0, 16);
     rep[3] = (~byte1 & 0x0F);
         rep[7] = (~byte2 & 0x0F);
 
@@ -455,8 +352,11 @@ int main(void)
 
         rep[0] = 1;
         rep[4] = 2;
+        rep[8] = 3;
+        rep[12] = 4;
         USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *)rep, sizeof(rep));
-    HAL_Delay(16);
+    }
+    //HAL_Delay(16);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -474,13 +374,12 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
-  /**Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
@@ -488,14 +387,14 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /**Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks 
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV8;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
@@ -514,7 +413,7 @@ void SystemClock_Config(void)
   * @param None
   * @retval None
   */
-static void MX_TIM2_gamepad_Init(void)
+static void MX_TIM2_Init(void)
 {
 
   /* USER CODE BEGIN TIM2_Init 0 */
@@ -528,9 +427,9 @@ static void MX_TIM2_gamepad_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2_gamepad.Instance = TIM2;
-  htim2_gamepad.Init.Prescaler = 71999;
+  htim2_gamepad.Init.Prescaler = 35999 - 2;
   htim2_gamepad.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2_gamepad.Init.Period = 100;
+  htim2_gamepad.Init.Period = 16 * 2 - 1;
   htim2_gamepad.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2_gamepad.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2_gamepad) != HAL_OK)
@@ -551,46 +450,6 @@ static void MX_TIM2_gamepad_Init(void)
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
-
-}
-
-static void MX_TIM4_usb_Init(void)
-{
-
-  /* USER CODE BEGIN TIM4_Init 0 */
-
-  /* USER CODE END TIM4_Init 0 */
-
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-  /* USER CODE BEGIN TIM4_Init 1 */
-
-  /* USER CODE END TIM4_Init 1 */
-  htim4_usb.Instance = TIM4;
-  htim4_usb.Init.Prescaler = 71999;
-  htim4_usb.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4_usb.Init.Period = 1;
-  htim4_usb.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim4_usb.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim4_usb) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim4_usb, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim4_usb, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM4_Init 2 */
-
-  /* USER CODE END TIM4_Init 2 */
 
 }
 
@@ -642,22 +501,21 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-    /*Configure GPIO pin Output Level */
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
-    /*Configure GPIO pin : PC13 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-#ifdef NES
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4|GPIO_PIN_5, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PC13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PA4 PA5 */
   GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5;
@@ -684,37 +542,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-#elif defined(SEGA)
- /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10|GPIO_PIN_3, GPIO_PIN_RESET);
 
-  // A4 - sel
-  /*Configure GPIO pins : FIRST_JOY: PA5 PA6 PA7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : FIRST_JOY: PB0 PB1 PB10 SECOND_JOY: PB9 PB8 PB7 PB6 PB5 PB4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_8|GPIO_PIN_7|GPIO_PIN_6|GPIO_PIN_5|GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-  
-  /*Configure GPIO pin : SECOND_JOY: PB3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-  
-  /*Configure GPIO pin : FIRST_JOY: PA4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-#endif
 }
 
 /* USER CODE BEGIN 4 */
