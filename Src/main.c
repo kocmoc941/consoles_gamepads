@@ -26,6 +26,8 @@
 /* USER CODE BEGIN Includes */
 #include "usbd_custom_hid_if.h"
 #include "config.h"
+#include "dwt.h"
+#include "read_joy.h"
 
 /* USER CODE END Includes */
 
@@ -40,101 +42,6 @@
 //#define _DEBUG
 volatile uint8_t m_gamepad_updated = 0;
 volatile uint8_t m_usb_report_need_update = 0;
-
-void DWT_Init(void);
-void delayUS_DWT(uint32_t us);
-    
-static void delay_us(uint32_t us)
-{
-    DWT_Init();
-    delayUS_DWT(us);
-}
-
-#define readTwoGamepads(byte1, port1, latch1, clk1, data1       \
-                        , byte2, port2, latch2, clk2, data2)    \
-        HAL_GPIO_WritePin(port1, latch1, GPIO_PIN_SET);         \
-        HAL_GPIO_WritePin(port2, latch2, GPIO_PIN_SET);         \
-        delay_us(5);\
-        HAL_GPIO_WritePin(port1, latch1, GPIO_PIN_RESET);       \
-        HAL_GPIO_WritePin(port2, latch2, GPIO_PIN_RESET);       \
-        delay_us(5);\
-        byte1 = 0;                                              \
-        byte2 = 0;                                              \
-        for(int i = 0; i < 8; ++i) {                            \
-            {                                                   \
-            HAL_GPIO_WritePin(port1, clk1, GPIO_PIN_RESET);       \
-            HAL_GPIO_WritePin(port2, clk2, GPIO_PIN_RESET);       \
-            delay_us(3);\
-            const uint8_t bit = HAL_GPIO_ReadPin(port1, data1); \
-            byte1 |= ((bit & 0x1) << i);                        \
-                if (bit) { HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, bit ? GPIO_PIN_SET : GPIO_PIN_RESET); \
-            } \
-            }                                                   \
-            {                                                   \
-            const uint8_t bit = HAL_GPIO_ReadPin(port2, data2); \
-            byte2 |= ((bit & 0x1) << i);                        \
-            if (bit) { HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, bit ? GPIO_PIN_SET : GPIO_PIN_RESET); \
-            } \
-            }                                                   \
-            HAL_GPIO_WritePin(port1, clk1, GPIO_PIN_SET);     \
-            HAL_GPIO_WritePin(port2, clk2, GPIO_PIN_SET);     \
-            delay_us(5);\
-        }
-
-//#define readTwoGamepadsAtSEGA(byte1, port1, sel, up_z, down_y, left_x \
-//                        , byte2, port2, right_mode, A_B, C_start)     \
-//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);                  \
-//        delayUS_DWT(20);                                              \
-//                                                                      \
-//        byte1 = 0;                                                    \
-//        byte2 = 0;                                                    \
-//        const uint8_t up = HAL_GPIO_ReadPin(port1, up_z);             \
-//        const uint8_t down = HAL_GPIO_ReadPin(port1, down_y);         \
-//        const uint8_t left = HAL_GPIO_ReadPin(port1, left_x);         \
-//        const uint8_t right = HAL_GPIO_ReadPin(port2, right_mode);    \
-//        const uint8_t B = HAL_GPIO_ReadPin(port2, A_B);               \
-//        const uint8_t C = HAL_GPIO_ReadPin(port2, C_start);           \
-//        byte1 |= (up << 0);                                           \
-//        byte1 |= (down << 1);                                         \
-//        byte1 |= (left << 2);                                         \
-//        byte1 |= (right << 3);                                        \
-//        byte2 |= (C << 2);                                            \
-//        byte2 |= (B << 1);                                      \
-//                                                                \
-//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
-//        delayUS_DWT(20);                                        \
-//                                                                \
-//        const uint8_t A = HAL_GPIO_ReadPin(port2, A_B);         \
-//        const uint8_t START = HAL_GPIO_ReadPin(port2, C_start); \
-//        byte2 |= (A << 0);/*A*/                                 \
-//        byte2 |= (START << 3);/*START*/                         \
-//                                                                \
-//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
-//        delayUS_DWT(20);                                        \
-//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
-//        delayUS_DWT(20);                                        \
-//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
-//        delayUS_DWT(20);                                        \
-//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
-//        delayUS_DWT(20);                                        \
-//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
-//        delayUS_DWT(20);                                        \
-//                                                                \
-//        const uint8_t Z = HAL_GPIO_ReadPin(port1, up_z);        \
-//        const uint8_t Y = HAL_GPIO_ReadPin(port1, down_y);      \
-//        const uint8_t X = HAL_GPIO_ReadPin(port1, left_x);      \
-//        const uint8_t MODE = HAL_GPIO_ReadPin(port2, right_mode); \
-//        byte2 |= (X << 4); /*X*/                                \
-//        byte2 |= (Y << 5); /*Y*/                                \
-//        byte2 |= (Z << 6); /*Z*/                                \
-//        byte2 |= (MODE << 7); /*MODE*/                          \
-//                                                                \
-//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
-//        delayUS_DWT(20);                                        \
-//        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
-//        delayUS_DWT(20);
-//
-//#endif
 
 /* USER CODE END PD */
 
@@ -155,25 +62,6 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 volatile uint8_t byte1 = 0;
 volatile uint8_t byte2 = 0;
 volatile uint8_t rep[16] = {0};
-
-#define    DWT_CYCCNT    *(volatile unsigned long *)0xE0001004
-#define    DWT_CONTROL   *(volatile unsigned long *)0xE0001000
-#define    SCB_DEMCR     *(volatile unsigned long *)0xE000EDFC
-
-void DWT_Init(void)
-{
-     SCB_DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-     DWT_CYCCNT  = 0;
-     DWT_CONTROL|= DWT_CTRL_CYCCNTENA_Msk; 
-}
-
-void delayUS_DWT(uint32_t us) {
-    volatile uint32_t cycles = (SystemCoreClock/1000000L) * us;
-    volatile uint32_t start = DWT->CYCCNT;
-    do  {
-    } while((DWT->CYCCNT - start) < cycles);
-}
-
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -307,10 +195,9 @@ int main(void)
     if (m_gamepad_updated) {
         //__disable_irq();
         m_gamepad_updated = 0;
-        readTwoGamepads(byte1, GPIOA, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6
-                        , byte2, GPIOB, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_10)
+        readTwoGamepads(byte1, byte2)
        //__enable_irq();
-    memset((void *)rep, 0, 16);
+    memset((void *)rep, 0x00, sizeof(rep));
     rep[3] = (~byte1 & 0x0F);
         rep[7] = (~byte2 & 0x0F);
 
