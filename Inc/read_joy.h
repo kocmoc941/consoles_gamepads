@@ -64,12 +64,14 @@ typedef struct {
             delay_us(5);                       \
         }
 
-#define readTwoGamepadsAtSEGA(byte1, byte2)											      \
+#define readTwoGamepadsAtSEGA(byte1, byte2, byte3, byte4)											      \
         SEGA_JOY1_SELECT(GPIO_PIN_SET);                  \
         delayUS_DWT(20);                                              \
                                                                       \
         byte1 = 0x00;                                                    \
         byte2 = 0x00;                                                    \
+        byte3 = 0x00;                                                    \
+        byte4 = 0x00;                                                    \
         const uint8_t up = SEGA_JOY1_UP_Z;             \
         const uint8_t down = SEGA_JOY1_DOWN_Y;         \
         const uint8_t left = SEGA_JOY1_LEFT_X;         \
@@ -114,8 +116,55 @@ typedef struct {
         SEGA_JOY1_SELECT(GPIO_PIN_RESET);          \
         delayUS_DWT(20);                                        \
         SEGA_JOY1_SELECT(GPIO_PIN_SET);            \
-        delayUS_DWT(20);
-
+        delayUS_DWT(20); \
+        { \
+                const uint8_t up = SEGA_JOY2_UP_Z;             \
+                const uint8_t down = SEGA_JOY2_DOWN_Y;         \
+                const uint8_t left = SEGA_JOY2_LEFT_X;         \
+                const uint8_t right = SEGA_JOY2_RIGHT_MODE;    \
+                const uint8_t B = SEGA_JOY2_A_B;               \
+                const uint8_t C = SEGA_JOY2_C_START;           \
+                byte3 |= (up << 0);                                           \
+                byte3 |= (down << 1);                                         \
+                byte3 |= (left << 2);                                         \
+                byte3 |= (right << 3);                                        \
+                byte4 |= (C << 2);                                            \
+                byte4 |= (B << 1);                                      \
+                                                                        \
+                SEGA_JOY2_SELECT(GPIO_PIN_RESET);          \
+                delayUS_DWT(20);                                        \
+                                                                        \
+                const uint8_t A = SEGA_JOY2_A_B;         \
+                const uint8_t START = SEGA_JOY2_C_START; \
+                byte4 |= (A << 0);/*A*/                                 \
+                byte4 |= (START << 3);/*START*/                         \
+                                                                        \
+                SEGA_JOY2_SELECT(GPIO_PIN_SET);            \
+                delayUS_DWT(20);                                        \
+                SEGA_JOY2_SELECT(GPIO_PIN_RESET);          \
+                delayUS_DWT(20);                                        \
+                SEGA_JOY2_SELECT(GPIO_PIN_SET);            \
+                delayUS_DWT(20);                                        \
+                SEGA_JOY2_SELECT(GPIO_PIN_RESET);           \
+                delayUS_DWT(20);                                        \
+                SEGA_JOY2_SELECT(GPIO_PIN_SET);            \
+                delayUS_DWT(20);                                        \
+                                                                        \
+                const uint8_t Z = SEGA_JOY2_UP_Z;        \
+                const uint8_t Y = SEGA_JOY2_DOWN_Y;      \
+                const uint8_t X = SEGA_JOY2_LEFT_X;      \
+                const uint8_t MODE = SEGA_JOY2_RIGHT_MODE; \
+                byte4 |= (X << 4); /*X*/                                \
+                byte4 |= (Y << 5); /*Y*/                                \
+                byte4 |= (Z << 6); /*Z*/                                \
+                byte4 |= (MODE << 7); /*MODE*/                          \
+                                                                        \
+                SEGA_JOY2_SELECT(GPIO_PIN_RESET);          \
+                delayUS_DWT(20);                                        \
+                SEGA_JOY2_SELECT(GPIO_PIN_SET);            \
+                delayUS_DWT(20);    \
+        }
+        
 void InitControl_Joysticks(Joy_Control *joy);
 
 #endif //__READ_JOY__H
