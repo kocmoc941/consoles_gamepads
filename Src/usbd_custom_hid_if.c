@@ -177,8 +177,8 @@ __ALIGN_BEGIN static uint8_t CUSTOM_HID_ReportDesc_FS[USBD_CUSTOM_HID_REPORT_DES
                , 0x09, 0x04 //                ; USAGE (Joystick)
                , 0xa1, 0x01 //                ; COLLECTION (Application)
                , 0xa1, 0x00 //                ;   COLLECTION (Physical)
-               , 0x85, 0x04 //                                                          ;     REPORT_ID
-               , 0x05, 0x04 //                ;     USAGE_PAGE (Generic Desktop)
+               , 0x85, 0x04 //                                                          ;         REPORT_ID
+               , 0x05, 0x01 //                ;     USAGE_PAGE (Generic Desktop)
                , 0x09, 0x30 //                ;     USAGE (X)
                , 0x09, 0x31 //                ;     USAGE (Y)
                , 0x15, 0x81 //                ;     LOGICAL_MINIMUM (-127)
