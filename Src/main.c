@@ -70,7 +70,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         m_gamepad_updated = 1;
     }
 }
-    
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,7 +96,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
-  
+
 
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -160,7 +160,6 @@ int main(void)
 //    };
 
   InitControl_Joysticks(&m_joys);
-  m_joys.init();
 
   while (1)
   {
@@ -199,6 +198,7 @@ int main(void)
 
     if (m_gamepad_updated) {
         m_gamepad_updated = 0;
+			  m_joys.init();
         m_joys.read_joys();
         m_joys.send_report();
 //        readTwoGamepads(byte1, byte2)

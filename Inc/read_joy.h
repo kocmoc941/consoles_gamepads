@@ -32,7 +32,7 @@ typedef struct {
     void (*init)(void);
     void (*read_joys)(void);
     void (*send_report)(void);
-    void (*get_key)(Keys key);
+    uint8_t (*get_key)(Keys key);
     void (*set_key)(Keys key, KEY_STATUS stat);
 } Joy_Control;
 

@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-inline void DWT_Init(void);
-inline void delayUS_DWT(uint32_t us);
-inline void delay_us(uint32_t us);
+void DWT_Init(void);
+void delayUS_DWT(uint32_t us);
+void delay_us(uint32_t us);
 
 #endif //__DWT_H
