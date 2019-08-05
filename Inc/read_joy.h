@@ -64,19 +64,18 @@ typedef struct {
             delay_us(5);                       \
         }
 
-#define readTwoGamepadsAtSEGA(byte1, port1, sel, up_z, down_y, left_x \
-                        , byte2, port2, right_mode, A_B, C_start)     \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);                  \
+#define readTwoGamepadsAtSEGA(byte1, byte2)											      \
+        SEGA_JOY1_SELECT(GPIO_PIN_SET);                  \
         delayUS_DWT(20);                                              \
                                                                       \
-        byte1 = 0;                                                    \
-        byte2 = 0;                                                    \
-        const uint8_t up = HAL_GPIO_ReadPin(port1, up_z);             \
-        const uint8_t down = HAL_GPIO_ReadPin(port1, down_y);         \
-        const uint8_t left = HAL_GPIO_ReadPin(port1, left_x);         \
-        const uint8_t right = HAL_GPIO_ReadPin(port2, right_mode);    \
-        const uint8_t B = HAL_GPIO_ReadPin(port2, A_B);               \
-        const uint8_t C = HAL_GPIO_ReadPin(port2, C_start);           \
+        byte1 = 0x00;                                                    \
+        byte2 = 0x00;                                                    \
+        const uint8_t up = SEGA_JOY1_UP_Z;             \
+        const uint8_t down = SEGA_JOY1_DOWN_Y;         \
+        const uint8_t left = SEGA_JOY1_LEFT_X;         \
+        const uint8_t right = SEGA_JOY1_RIGHT_MODE;    \
+        const uint8_t B = SEGA_JOY1_A_B;               \
+        const uint8_t C = SEGA_JOY1_C_START;           \
         byte1 |= (up << 0);                                           \
         byte1 |= (down << 1);                                         \
         byte1 |= (left << 2);                                         \
@@ -84,37 +83,37 @@ typedef struct {
         byte2 |= (C << 2);                                            \
         byte2 |= (B << 1);                                      \
                                                                 \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
+        SEGA_JOY1_SELECT(GPIO_PIN_RESET);          \
         delayUS_DWT(20);                                        \
                                                                 \
-        const uint8_t A = HAL_GPIO_ReadPin(port2, A_B);         \
-        const uint8_t START = HAL_GPIO_ReadPin(port2, C_start); \
+        const uint8_t A = SEGA_JOY1_A_B;         \
+        const uint8_t START = SEGA_JOY1_C_START; \
         byte2 |= (A << 0);/*A*/                                 \
         byte2 |= (START << 3);/*START*/                         \
                                                                 \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
+        SEGA_JOY1_SELECT(GPIO_PIN_SET);            \
         delayUS_DWT(20);                                        \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
+        SEGA_JOY1_SELECT(GPIO_PIN_RESET);          \
         delayUS_DWT(20);                                        \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
+        SEGA_JOY1_SELECT(GPIO_PIN_SET);            \
         delayUS_DWT(20);                                        \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
+        SEGA_JOY1_SELECT(GPIO_PIN_RESET);           \
         delayUS_DWT(20);                                        \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
+        SEGA_JOY1_SELECT(GPIO_PIN_SET);            \
         delayUS_DWT(20);                                        \
                                                                 \
-        const uint8_t Z = HAL_GPIO_ReadPin(port1, up_z);        \
-        const uint8_t Y = HAL_GPIO_ReadPin(port1, down_y);      \
-        const uint8_t X = HAL_GPIO_ReadPin(port1, left_x);      \
-        const uint8_t MODE = HAL_GPIO_ReadPin(port2, right_mode); \
+        const uint8_t Z = SEGA_JOY1_UP_Z;        \
+        const uint8_t Y = SEGA_JOY1_DOWN_Y;      \
+        const uint8_t X = SEGA_JOY1_LEFT_X;      \
+        const uint8_t MODE = SEGA_JOY1_RIGHT_MODE; \
         byte2 |= (X << 4); /*X*/                                \
         byte2 |= (Y << 5); /*Y*/                                \
         byte2 |= (Z << 6); /*Z*/                                \
         byte2 |= (MODE << 7); /*MODE*/                          \
                                                                 \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_RESET);          \
+        SEGA_JOY1_SELECT(GPIO_PIN_RESET);          \
         delayUS_DWT(20);                                        \
-        HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
+        SEGA_JOY1_SELECT(GPIO_PIN_SET);            \
         delayUS_DWT(20);
 
 void InitControl_Joysticks(Joy_Control *joy);

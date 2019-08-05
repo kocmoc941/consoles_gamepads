@@ -100,6 +100,27 @@ static void m_read_joys(void)
         rep->n_joy2.left_right = 0x00;
     }
 
+		byte1 = 0xFF;
+    byte2 = 0xFF;
+    readTwoGamepadsAtSEGA(byte1, byte2)
+    if (IS_PRESS(byte1, 2)) {
+        rep->s_joy1.left_right = (uint8_t)(-127);
+    } else if (IS_PRESS(byte1, 3)) {
+        rep->s_joy1.left_right = (uint8_t)(127);
+    } else {
+        rep->s_joy1.left_right = 0x00;
+    }
+		
+    if (IS_PRESS(byte1, 0)) {
+        rep->s_joy1.up_down = (uint8_t)(-127);
+    } else if (IS_PRESS(byte1, 1)) {
+        rep->s_joy1.up_down = (uint8_t)(127);
+    } else {
+        rep->s_joy1.up_down = 0x00;
+    }
+		
+		rep->s_joy1.buttons = ~byte2;
+		
     rep->n_joy1.id = NES_JOY1;
     rep->n_joy2.id = NES_JOY2;
     rep->s_joy1.id = SEGA_JOY1;
