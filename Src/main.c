@@ -25,7 +25,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_custom_hid_if.h"
-#include "config.h"
 #include "dwt.h"
 #include "read_joy.h"
 
@@ -42,6 +41,8 @@
 //#define _DEBUG
 volatile uint8_t m_gamepad_updated = 0;
 volatile uint8_t m_usb_report_need_update = 0;
+
+Joy_Control m_joys;
 
 /* USER CODE END PD */
 
@@ -157,6 +158,10 @@ int main(void)
 //        0x18,         // 8
 //        0x19          // 9
 //    };
+
+  InitControl_Joysticks(&m_joys);
+  m_joys.init();
+
   while (1)
   {
 
@@ -193,55 +198,55 @@ int main(void)
 #endif
 
     if (m_gamepad_updated) {
-        //__disable_irq();
         m_gamepad_updated = 0;
-        readTwoGamepads(byte1, byte2)
-       //__enable_irq();
-    memset((void *)rep, 0x00, sizeof(rep));
-    rep[3] = (~byte1 & 0x0F);
-        rep[7] = (~byte2 & 0x0F);
+        m_joys.read_joys();
+        m_joys.send_report();
+//        readTwoGamepads(byte1, byte2)
+//        memset((void *)rep, 0x00, sizeof(rep));
+//        rep[3] = (~byte1 & 0x0F);
+//        rep[7] = (~byte2 & 0x0F);
 
-        // Y
-        if (!((byte1 >> 4) & 1)) {
-            rep[2] = (uint8_t)(-127);
-        } else if (!((byte1 >> 5) & 1)) {
-            rep[2] = (uint8_t)(127);
-        } else {
-            rep[2] = 0x00;
-        }
+//        // Y
+//        if (!((byte1 >> 4) & 1)) {
+//            rep[2] = (uint8_t)(-127);
+//        } else if (!((byte1 >> 5) & 1)) {
+//            rep[2] = (uint8_t)(127);
+//        } else {
+//            rep[2] = 0x00;
+//        }
 
-        // X
-        if (!((byte1 >> 6) & 1)) {
-            rep[1] = (uint8_t)(-127);
-        } else if (!((byte1 >> 7) & 1)) {
-            rep[1] = (uint8_t)(127);
-        } else {
-            rep[1] = 0x00;
-        }
-        
-        // Y
-        if (!((byte2 >> 4) & 1)) {
-            rep[6] = (uint8_t)(-127);
-        } else if (!((byte2 >> 5) & 1)) {
-            rep[6] = (uint8_t)(127);
-        } else {
-            rep[6] = 0x00;
-        }
+//        // X
+//        if (!((byte1 >> 6) & 1)) {
+//            rep[1] = (uint8_t)(-127);
+//        } else if (!((byte1 >> 7) & 1)) {
+//            rep[1] = (uint8_t)(127);
+//        } else {
+//            rep[1] = 0x00;
+//        }
+//        
+//        // Y
+//        if (!((byte2 >> 4) & 1)) {
+//            rep[6] = (uint8_t)(-127);
+//        } else if (!((byte2 >> 5) & 1)) {
+//            rep[6] = (uint8_t)(127);
+//        } else {
+//            rep[6] = 0x00;
+//        }
 
-        // X
-        if (!((byte2 >> 6) & 1)) {
-            rep[5] = (uint8_t)(-127);
-        } else if (!((byte2 >> 7) & 1)) {
-            rep[5] = (uint8_t)(127);
-        } else {
-            rep[5] = 0x00;
-        }
+//        // X
+//        if (!((byte2 >> 6) & 1)) {
+//            rep[5] = (uint8_t)(-127);
+//        } else if (!((byte2 >> 7) & 1)) {
+//            rep[5] = (uint8_t)(127);
+//        } else {
+//            rep[5] = 0x00;
+//        }
 
-        rep[0] = 1;
-        rep[4] = 2;
-        rep[8] = 3;
-        rep[12] = 4;
-        USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *)rep, sizeof(rep));
+//        rep[0] = 1;
+//        rep[4] = 2;
+//        rep[8] = 3;
+//        rep[12] = 4;
+//        USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *)rep, sizeof(rep));
     }
     //HAL_Delay(16);
     /* USER CODE END WHILE */

@@ -501,6 +501,11 @@
               <FileType>1</FileType>
               <FilePath>..\Src\dwt.c</FilePath>
             </File>
+            <File>
+              <FileName>read_joy.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\read_joy.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -3,46 +3,37 @@
 
 #include <stdint.h>
 
-#pragma pack(push, 1)
-typedef struct {
-    struct NES {
-        uint8_t id;
-        uint8_t up:1;
-        uint8_t down:1;
-        uint8_t left:1;
-        uint8_t right:1;
-        uint8_t select:1;
-        uint8_t start:1;
-        uint8_t a:1;
-        uint8_t b:1;
-    } n_joy1, n_joy2;
-        struct SEGA {
-        uint8_t id;
-        uint8_t up:1;
-        uint8_t down:1;
-        uint8_t left:1;
-        uint8_t right:1;
-        uint8_t b:1;
-        uint8_t c:1;
-        uint8_t a:1;
-        uint8_t start:1;
-        uint8_t z:1;
-        uint8_t y:1;
-        uint8_t x:1;
-        uint8_t mode:1;
-    } s_joy1, s_joy2;
-} Joystick;
-#pragma pack(pop, 1)
+typedef enum {
+    KEY_PRESS,
+    KEY_RELEASE,
+} KEY_STATUS;
+
+typedef enum {
+    KEY_A,
+    KEY_B,
+    KEY_SELECT,
+    KEY_START,
+    KEY_UP,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+} Keys;
+
+typedef enum {
+    HID_ID,
+    HID_X,
+    HID_Y,
+    HID_BUTTONS,
+} HID_Keys;
+
+typedef struct Joystick Joystick;
 
 typedef struct {
-    void (*init)(Joystick *joy);
+    void (*init)(void);
     void (*read_joys)(void);
     void (*send_report)(void);
-
-    uint8_t __data1;
-    uint8_t __data2;
-    uint8_t __data3;
-    uint8_t __data4;
+    void (*get_key)(Keys key);
+    void (*set_key)(Keys key, KEY_STATUS stat);
 } Joy_Control;
 
 #define readTwoGamepads(byte1, byte2)    \
@@ -125,6 +116,8 @@ typedef struct {
         delayUS_DWT(20);                                        \
         HAL_GPIO_WritePin(port1, sel, GPIO_PIN_SET);            \
         delayUS_DWT(20);
+
+void InitControl_Joysticks(Joy_Control *joy);
 
 #endif //__READ_JOY__H
 
