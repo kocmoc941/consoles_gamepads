@@ -506,6 +506,11 @@
               <FileType>1</FileType>
               <FilePath>..\Src\read_joy.c</FilePath>
             </File>
+            <File>
+              <FileName>emulator.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\emulator.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -695,6 +700,11 @@
               <FileName>read_joy.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Inc\read_joy.h</FilePath>
+            </File>
+            <File>
+              <FileName>emulator.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Inc\emulator.h</FilePath>
             </File>
           </Files>
         </Group>

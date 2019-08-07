@@ -1,8 +1,6 @@
 #ifndef __READ_JOY__H
 #define __READ_JOY__H
 
-#include <stdint.h>
-
 typedef enum {
     KEY_PRESS,
     KEY_RELEASE,
@@ -24,6 +22,14 @@ typedef enum {
     SEGA_KEY_DOWN,
     SEGA_KEY_LEFT,
     SEGA_KEY_RIGHT,
+    SEGA_KEY_A = 0x0,
+    SEGA_KEY_B,
+    SEGA_KEY_C,
+    SEGA_KEY_START,
+    SEGA_KEY_X,
+    SEGA_KEY_Y,
+    SEGA_KEY_Z,
+    SEGA_KEY_MODE,
 } SEGA_Keys;
 
 typedef enum {
@@ -32,6 +38,27 @@ typedef enum {
     HID_Y,
     HID_BUTTONS,
 } HID_Keys;
+
+typedef unsigned char uint8_t;
+
+#pragma pack(push, 1)
+struct Joystick {
+
+    struct NES {
+        uint8_t id;
+        uint8_t left_right;
+        uint8_t up_down;
+        uint8_t buttons;
+    } n_joy1, n_joy2;
+
+    struct SEGA {
+        uint8_t id;
+        uint8_t left_right;
+        uint8_t up_down;
+        uint8_t buttons;
+    } s_joy1, s_joy2;
+};
+#pragma pack(pop, 1)
 
 typedef struct Joystick Joystick;
 
@@ -89,16 +116,16 @@ typedef struct {
         byte1 |= (down << 1);                                         \
         byte1 |= (left << 2);                                         \
         byte1 |= (right << 3);                                        \
-        byte2 |= (C << 2);                                            \
-        byte2 |= (B << 1);                                      \
+        byte2 |= (C << 1);                                            \
+        byte2 |= (B << 2);                                      \
                                                                 \
         SEGA_JOY1_SELECT(GPIO_PIN_RESET);          \
         delayUS_DWT(20);                                        \
                                                                 \
         const uint8_t A = SEGA_JOY1_A_B;         \
         const uint8_t START = SEGA_JOY1_C_START; \
-        byte2 |= (A << 0);/*A*/                                 \
-        byte2 |= (START << 3);/*START*/                         \
+        byte2 |= (A << 3);/*A*/                                 \
+        byte2 |= (START << 0);/*START*/                         \
                                                                 \
         SEGA_JOY1_SELECT(GPIO_PIN_SET);            \
         delayUS_DWT(20);                                        \
@@ -135,16 +162,16 @@ typedef struct {
                 byte3 |= (down << 1);                                         \
                 byte3 |= (left << 2);                                         \
                 byte3 |= (right << 3);                                        \
-                byte4 |= (C << 2);                                            \
-                byte4 |= (B << 1);                                      \
+                byte4 |= (C << 1);                                            \
+                byte4 |= (B << 2);                                      \
                                                                         \
                 SEGA_JOY2_SELECT(GPIO_PIN_RESET);          \
                 delayUS_DWT(20);                                        \
                                                                         \
                 const uint8_t A = SEGA_JOY2_A_B;         \
                 const uint8_t START = SEGA_JOY2_C_START; \
-                byte4 |= (A << 0);/*A*/                                 \
-                byte4 |= (START << 3);/*START*/                         \
+                byte4 |= (A << 3);/*A*/                                 \
+                byte4 |= (START << 0);/*START*/                         \
                                                                         \
                 SEGA_JOY2_SELECT(GPIO_PIN_SET);            \
                 delayUS_DWT(20);                                        \

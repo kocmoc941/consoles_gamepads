@@ -1,6 +1,7 @@
 #include "config.h"
 #include "dwt.h"
 #include "read_joy.h"
+#include "emulator.h"
 
 #include <string.h>
 
@@ -8,25 +9,6 @@
 #include "stm32f1xx_hal.h"
 
 #define IS_PRESS(byte, btn) (!((byte >> btn) & 1))
-
-#pragma pack(push, 1)
-struct Joystick {
-
-    struct NES {
-        uint8_t id;
-        uint8_t left_right;
-        uint8_t up_down;
-				uint8_t buttons;
-    } n_joy1, n_joy2;
-
-    struct SEGA {
-        uint8_t id;
-        uint8_t left_right;
-        uint8_t up_down;
-        uint8_t buttons;
-    } s_joy1, s_joy2;
-};
-#pragma pack(pop, 1)
 
 uint8_t assert[(sizeof(struct Joystick) == 16) ? 1 : -1];
 
@@ -145,6 +127,8 @@ static void m_read_joys(void)
     rep->n_joy2.id = NES_JOY2;
     rep->s_joy1.id = SEGA_JOY1;
     rep->s_joy2.id = SEGA_JOY2;
+    
+    emulator(rep, 1);
 }
 
 static uint8_t m_get_key(NES_Keys key)
@@ -162,3 +146,4 @@ static void m_send_report(void)
 {
     USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *)&m_data, sizeof(m_data));
 }
+
