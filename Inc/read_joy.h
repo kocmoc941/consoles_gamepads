@@ -9,15 +9,22 @@ typedef enum {
 } KEY_STATUS;
 
 typedef enum {
-    KEY_A,
-    KEY_B,
-    KEY_SELECT,
-    KEY_START,
-    KEY_UP,
-    KEY_DOWN,
-    KEY_LEFT,
-    KEY_RIGHT,
-} Keys;
+    NES_KEY_A,
+    NES_KEY_B,
+    NES_KEY_SELECT,
+    NES_KEY_START,
+    NES_KEY_UP,
+    NES_KEY_DOWN,
+    NES_KEY_LEFT,
+    NES_KEY_RIGHT,
+} NES_Keys;
+
+typedef enum {
+    SEGA_KEY_UP,
+    SEGA_KEY_DOWN,
+    SEGA_KEY_LEFT,
+    SEGA_KEY_RIGHT,
+} SEGA_Keys;
 
 typedef enum {
     HID_ID,
@@ -32,8 +39,8 @@ typedef struct {
     void (*init)(void);
     void (*read_joys)(void);
     void (*send_report)(void);
-    uint8_t (*get_key)(Keys key);
-    void (*set_key)(Keys key, KEY_STATUS stat);
+    uint8_t (*get_key)(NES_Keys key);
+    void (*set_key)(NES_Keys key, KEY_STATUS stat);
 } Joy_Control;
 
 #define readTwoGamepads(byte1, byte2)    \

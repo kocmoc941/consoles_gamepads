@@ -35,8 +35,8 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 static void m_init(void);
 static void m_read_joys(void);
 static void m_send_report(void);
-static uint8_t m_get_key(Keys key);
-static void m_set_key(Keys key, KEY_STATUS stat);
+static uint8_t m_get_key(NES_Keys key);
+static void m_set_key(NES_Keys key, KEY_STATUS stat);
 
 volatile Joystick m_data;
 
@@ -65,36 +65,36 @@ static void m_read_joys(void)
     rep->n_joy2.buttons = (~byte2 & 0x0F);
 
     // Y
-    if (IS_PRESS(byte1, KEY_UP)) {
+    if (IS_PRESS(byte1, NES_KEY_UP)) {
         rep->n_joy1.up_down = (uint8_t)(-127);
-    } else if (IS_PRESS(byte1, KEY_DOWN)) {
+    } else if (IS_PRESS(byte1, NES_KEY_DOWN)) {
         rep->n_joy1.up_down = (uint8_t)(127);
     } else {
         rep->n_joy1.up_down = 0x00;
     }
 
     // X
-    if (IS_PRESS(byte1, KEY_LEFT)) {
+    if (IS_PRESS(byte1, NES_KEY_LEFT)) {
         rep->n_joy1.left_right = (uint8_t)(-127);
-    } else if (IS_PRESS(byte1, KEY_RIGHT)) {
+    } else if (IS_PRESS(byte1, NES_KEY_RIGHT)) {
         rep->n_joy1.left_right = (uint8_t)(127);
     } else {
         rep->n_joy1.left_right = 0x00;
     }
     
     // Y
-    if (IS_PRESS(byte2, KEY_UP)) {
+    if (IS_PRESS(byte2, NES_KEY_UP)) {
         rep->n_joy2.up_down = (uint8_t)(-127);
-    } else if (IS_PRESS(byte2, KEY_DOWN)) {
+    } else if (IS_PRESS(byte2, NES_KEY_DOWN)) {
         rep->n_joy2.up_down = (uint8_t)(127);
     } else {
         rep->n_joy2.up_down = 0x00;
     }
 
     // X
-    if (IS_PRESS(byte2, KEY_LEFT)) {
+    if (IS_PRESS(byte2, NES_KEY_LEFT)) {
         rep->n_joy2.left_right = (uint8_t)(-127);
-    } else if (IS_PRESS(byte2, KEY_RIGHT)) {
+    } else if (IS_PRESS(byte2, NES_KEY_RIGHT)) {
         rep->n_joy2.left_right = (uint8_t)(127);
     } else {
         rep->n_joy2.left_right = 0x00;
@@ -105,56 +105,54 @@ static void m_read_joys(void)
     uint8_t byte3 = 0xFF;
     uint8_t byte4 = 0xFF;
     readTwoGamepadsAtSEGA(byte1, byte2, byte3, byte4)
-    if (IS_PRESS(byte1, 2)) {
+    if (IS_PRESS(byte1, SEGA_KEY_LEFT)) {
         rep->s_joy1.left_right = (uint8_t)(-127);
-    } else if (IS_PRESS(byte1, 3)) {
+    } else if (IS_PRESS(byte1, SEGA_KEY_RIGHT)) {
         rep->s_joy1.left_right = (uint8_t)(127);
     } else {
         rep->s_joy1.left_right = 0x00;
     }
-		
-    if (IS_PRESS(byte1, 0)) {
+
+    if (IS_PRESS(byte1, SEGA_KEY_UP)) {
         rep->s_joy1.up_down = (uint8_t)(-127);
-    } else if (IS_PRESS(byte1, 1)) {
+    } else if (IS_PRESS(byte1, SEGA_KEY_DOWN)) {
         rep->s_joy1.up_down = (uint8_t)(127);
     } else {
         rep->s_joy1.up_down = 0x00;
     }
-		
+
 	rep->s_joy1.buttons = ~byte2;
-    
-    {
-            if (IS_PRESS(byte3, 2)) {
-                rep->s_joy2.left_right = (uint8_t)(-127);
-            } else if (IS_PRESS(byte3, 3)) {
-                rep->s_joy2.left_right = (uint8_t)(127);
-            } else {
-                rep->s_joy2.left_right = 0x00;
-            }
-                
-            if (IS_PRESS(byte3, 0)) {
-                rep->s_joy2.up_down = (uint8_t)(-127);
-            } else if (IS_PRESS(byte3, 1)) {
-                rep->s_joy2.up_down = (uint8_t)(127);
-            } else {
-                rep->s_joy2.up_down = 0x00;
-            }
-                
-            rep->s_joy2.buttons = ~byte4;
+
+    if (IS_PRESS(byte3, SEGA_KEY_LEFT)) {
+        rep->s_joy2.left_right = (uint8_t)(-127);
+    } else if (IS_PRESS(byte3, SEGA_KEY_RIGHT)) {
+        rep->s_joy2.left_right = (uint8_t)(127);
+    } else {
+        rep->s_joy2.left_right = 0x00;
     }
-		
+
+    if (IS_PRESS(byte3, SEGA_KEY_UP)) {
+        rep->s_joy2.up_down = (uint8_t)(-127);
+    } else if (IS_PRESS(byte3, SEGA_KEY_RIGHT)) {
+        rep->s_joy2.up_down = (uint8_t)(127);
+    } else {
+        rep->s_joy2.up_down = 0x00;
+    }
+
+    rep->s_joy2.buttons = ~byte4;
+
     rep->n_joy1.id = NES_JOY1;
     rep->n_joy2.id = NES_JOY2;
     rep->s_joy1.id = SEGA_JOY1;
     rep->s_joy2.id = SEGA_JOY2;
 }
 
-static uint8_t m_get_key(Keys key)
+static uint8_t m_get_key(NES_Keys key)
 {
 	return (uint8_t)((m_data.n_joy1.buttons >> key) & 0x1);
 }
 
-static void m_set_key(Keys key, KEY_STATUS stat)
+static void m_set_key(NES_Keys key, KEY_STATUS stat)
 {
 	m_data.n_joy1.buttons &= ~(uint8_t)(0x1 << key);
 	m_data.n_joy1.buttons |= (uint8_t)(stat << key);
