@@ -17,15 +17,17 @@ void emulator(volatile Joystick *rep, uint8_t frames)
     const uint8_t C = IS_PRESS(rep->s_joy1.buttons, SEGA_KEY_C);
     const uint8_t Z = IS_PRESS(rep->s_joy1.buttons, SEGA_KEY_Z);
     if( !C && !Z) {
+        m_tmp[0] = 0x00;
+        m_tmp[1] = 0x00;
+        m_tmp[2] = 0x00;
         m_status_emu = STATE_KEY_IDLE;
         return;
     }
 
-    rep->s_joy1.buttons = 0;
-
     volatile uint8_t *LR = &m_tmp[0];
-    //volatile uint8_t *UD = &m_tmp[1];
-    //volatile uint8_t *BT = &m_tmp[2];
+    volatile uint8_t *UD = &rep->s_joy1.up_down;
+    volatile uint8_t *BT = &m_tmp[2];
+		//*BT |= rep->s_joy1.buttons;
 
     switch(m_status) {
         case STATE_IDLE: {
@@ -65,27 +67,24 @@ void emulator(volatile Joystick *rep, uint8_t frames)
             if(Z) {
                 *LR = (uint8_t)-127;
             } else {
-                *LR = 127;
+                *LR = (uint8_t)127;
             }
-            rep->s_joy1.left_right = *LR;
             break;
         }
         case STATE_KEY_2: {
             *LR = 0;
-            rep->s_joy1.left_right = *LR;
             break;
         }
         case STATE_KEY_3: {
             if(Z) {
                 *LR = (uint8_t)-127;
             } else {
-                *LR = 127;
+                *LR = (uint8_t)127;
             }
-            rep->s_joy1.left_right = *LR;
             break;
         }
         case STATE_KEY_4: {
-            rep->s_joy1.buttons = 1;
+            *BT = 2;
             break;
         }
         case STATE_KEY_5: {
@@ -135,7 +134,7 @@ void emulator(volatile Joystick *rep, uint8_t frames)
     };
 
     rep->s_joy1.left_right = *LR;
-    //rep->s_joy1.up_down = *UD;
-    //rep->s_joy1.buttons = *BT;
+    rep->s_joy1.up_down = *UD;
+    rep->s_joy1.buttons = *BT;
 }
 
