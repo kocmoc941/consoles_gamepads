@@ -33,7 +33,7 @@ void emulator(volatile Joystick *rep, uint8_t frames)
         case STATE_IDLE: {
             if(frames == EMU_STOP_EMULATION) {
                 m_status_emu = STATE_KEY_FINISH;
-            } else {
+            } else if (m_status_emu == STATE_KEY_IDLE) {
                 m_status = STATE_NEED_EMULATION;
             }
             break;
