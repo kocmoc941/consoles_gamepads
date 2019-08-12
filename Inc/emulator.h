@@ -37,7 +37,7 @@ typedef struct Joystick Joystick;
 
 typedef unsigned char uint8_t;
 
-void emulator(volatile Joystick *rep, uint8_t frames);
+inline void emulator(volatile Joystick *rep, uint8_t frames);
 
 #endif //__EMULATOR__H
 

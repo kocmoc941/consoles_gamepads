@@ -202,4 +202,3 @@ typedef struct {
 void InitControl_Joysticks(Joy_Control *joy);
 
 #endif //__READ_JOY__H
-

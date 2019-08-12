@@ -22,7 +22,7 @@ static void m_set_key(NES_Keys key, KEY_STATUS stat);
 
 volatile Joystick m_data;
 
-void InitControl_Joysticks(Joy_Control *joy)
+inline void InitControl_Joysticks(Joy_Control *joy)
 {
     joy->init = m_init;
     joy->read_joys = m_read_joys;
@@ -31,12 +31,12 @@ void InitControl_Joysticks(Joy_Control *joy)
     joy->set_key = m_set_key;
 }
 
-static void m_init(void)
+inline static void m_init(void)
 {
     memset((void *)&m_data, 0x0, sizeof(Joystick));
 }
 
-static void m_read_joys(void)
+inline static void m_read_joys(void)
 {
     uint8_t byte1 = 0xFF;
     uint8_t byte2 = 0xFF;
@@ -131,19 +131,18 @@ static void m_read_joys(void)
     emulator(rep, 1);
 }
 
-static uint8_t m_get_key(NES_Keys key)
+inline static uint8_t m_get_key(NES_Keys key)
 {
 	return (uint8_t)((m_data.n_joy1.buttons >> key) & 0x1);
 }
 
-static void m_set_key(NES_Keys key, KEY_STATUS stat)
+inline static void m_set_key(NES_Keys key, KEY_STATUS stat)
 {
 	m_data.n_joy1.buttons &= ~(uint8_t)(0x1 << key);
 	m_data.n_joy1.buttons |= (uint8_t)(stat << key);
 }
 
-static void m_send_report(void)
+inline static void m_send_report(void)
 {
     USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *)&m_data, sizeof(m_data));
 }
-
