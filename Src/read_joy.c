@@ -144,7 +144,11 @@ inline static void m_set_key(NES_Keys key, KEY_STATUS stat)
 
 inline static void m_send_report(void)
 {
-    if(m_data.n_joy1.buttons || m_data.n_joy2.buttons || m_data.s_joy1.buttons || m_data.s_joy2.buttons) {
+    if(m_data.n_joy1.buttons || m_data.n_joy2.buttons || m_data.s_joy1.buttons || m_data.s_joy2.buttons
+        || m_data.n_joy1.left_right || m_data.n_joy1.up_down
+        || m_data.n_joy2.left_right || m_data.n_joy2.up_down
+        || m_data.s_joy1.left_right || m_data.s_joy1.up_down
+        || m_data.s_joy2.left_right || m_data.s_joy2.up_down) {
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
     } else {
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
