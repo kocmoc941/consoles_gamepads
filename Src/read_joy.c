@@ -128,7 +128,7 @@ inline static void m_read_joys(void)
     rep->s_joy1.id = SEGA_JOY1;
     rep->s_joy2.id = SEGA_JOY2;
     
-    emulator(rep, 1);
+    //emulator(rep, 1);
 }
 
 inline static uint8_t m_get_key(NES_Keys key)
@@ -144,5 +144,10 @@ inline static void m_set_key(NES_Keys key, KEY_STATUS stat)
 
 inline static void m_send_report(void)
 {
+    if(m_data.n_joy1.buttons || m_data.n_joy2.buttons || m_data.s_joy1.buttons || m_data.s_joy2.buttons) {
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+    } else {
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
+    }
     USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *)&m_data, sizeof(m_data));
 }

@@ -152,6 +152,7 @@ typedef struct {
         SEGA_JOY1_SELECT(GPIO_PIN_SET);            \
         delayUS_DWT(20); \
         { \
+                SEGA_JOY2_SELECT(GPIO_PIN_SET);                  \
                 const uint8_t up = SEGA_JOY2_UP_Z;             \
                 const uint8_t down = SEGA_JOY2_DOWN_Y;         \
                 const uint8_t left = SEGA_JOY2_LEFT_X;         \
