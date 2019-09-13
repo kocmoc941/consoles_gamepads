@@ -115,7 +115,7 @@ inline static void m_read_joys(void)
 
     if (IS_PRESS(byte3, SEGA_KEY_UP)) {
         rep->s_joy2.up_down = (uint8_t)(-127);
-    } else if (IS_PRESS(byte3, SEGA_KEY_RIGHT)) {
+    } else if (IS_PRESS(byte3, SEGA_KEY_DOWN)) {
         rep->s_joy2.up_down = (uint8_t)(127);
     } else {
         rep->s_joy2.up_down = 0x00;
