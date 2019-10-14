@@ -65,8 +65,8 @@
   * @{
   */
 
-#define USBD_VID     0xAB
-#define USBD_LANGID_STRING     0xCD
+#define USBD_VID     0xCD
+#define USBD_LANGID_STRING     1033
 #define USBD_MANUFACTURER_STRING     "KOCMOC"
 #define USBD_PID_FS     22352
 #define USBD_PRODUCT_STRING_FS     "GAMEPADS (2NES + 2SEGA)"
