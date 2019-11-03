@@ -66,8 +66,6 @@ typedef struct {
     void (*init)(void);
     void (*read_joys)(void);
     void (*send_report)(void);
-    uint8_t (*get_key)(NES_Keys key);
-    void (*set_key)(NES_Keys key, KEY_STATUS stat);
 } Joy_Control;
 
 #define readTwoGamepads(byte1, byte2)    \

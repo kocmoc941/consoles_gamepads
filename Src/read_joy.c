@@ -17,8 +17,6 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 static void m_init(void);
 static void m_read_joys(void);
 static void m_send_report(void);
-static uint8_t m_get_key(NES_Keys key);
-static void m_set_key(NES_Keys key, KEY_STATUS stat);
 
 volatile Joystick m_data;
 
@@ -27,8 +25,6 @@ inline void InitControl_Joysticks(Joy_Control *joy)
     joy->init = m_init;
     joy->read_joys = m_read_joys;
     joy->send_report = m_send_report;
-    joy->get_key = m_get_key;
-    joy->set_key = m_set_key;
 }
 
 inline static void m_init(void)
@@ -129,17 +125,6 @@ inline static void m_read_joys(void)
     rep->s_joy2.id = SEGA_JOY2;
     
     //emulator(rep, 1);
-}
-
-inline static uint8_t m_get_key(NES_Keys key)
-{
-	return (uint8_t)((m_data.n_joy1.buttons >> key) & 0x1);
-}
-
-inline static void m_set_key(NES_Keys key, KEY_STATUS stat)
-{
-	m_data.n_joy1.buttons &= ~(uint8_t)(0x1 << key);
-	m_data.n_joy1.buttons |= (uint8_t)(stat << key);
 }
 
 inline static void m_send_report(void)
