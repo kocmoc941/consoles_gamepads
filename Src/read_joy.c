@@ -124,7 +124,7 @@ inline static void m_read_joys(void)
     rep->s_joy1.id = SEGA_JOY1;
     rep->s_joy2.id = SEGA_JOY2;
     
-    //emulator(rep, 1);
+    //emulator(rep);
 }
 
 inline static void m_send_report(void)

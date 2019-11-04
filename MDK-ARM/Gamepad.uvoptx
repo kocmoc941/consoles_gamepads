@@ -170,6 +170,16 @@
           <WinNumber>1</WinNumber>
           <ItemText>USBD_StrDesc</ItemText>
         </Ww>
+        <Ww>
+          <count>4</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>m_emu_btns[m_btn_cnt]</ItemText>
+        </Ww>
+        <Ww>
+          <count>5</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>m_btn_emu</ItemText>
+        </Ww>
       </WatchWindow1>
       <Tracepoint>
         <THDelay>0</THDelay>

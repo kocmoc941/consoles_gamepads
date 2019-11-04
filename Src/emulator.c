@@ -2,139 +2,135 @@
 #include "read_joy.h"
 
 #include <string.h>
+#include <stdint.h>
 
 #define IS_PRESS(byte, btn) ((byte >> btn) & 1)
 
-enum STATUS m_status = STATE_IDLE;
-enum STATUS_EMULATION m_status_emu = STATE_KEY_IDLE;
-enum STATUS_EMU_TIME m_status_emu_time = STATE_EMU_IDLE;
+#define EMU_BUTTONS_MAX 30
 
-uint8_t m_frames = 0;
-volatile uint8_t m_tmp[3] = {0x0};
+enum BUTTON_NUM {
+    BTN_FIRST,
+    BTN_SECOND,
+    BTN_THIRD,
+    BTN_CNT,
+};
+enum BUTTON_ACTIVE {
+    BTN_ACT_FIRST  = 0x01,
+    BTN_ACT_SECOND = 0x02,
+    BTN_ACT_THIRD  = 0x04,
+    BTN_ACT_ALL    = 0x07,
+};
 
-void emulator(volatile Joystick *rep, uint8_t frames)
+typedef struct EMU_BUTTON {
+    struct BUTTON {
+        union {
+            SEGA_Keys sega;
+            NES_Keys nes;
+        } key;
+        KEY_Status status;
+    } btn[BTN_CNT];
+    uint32_t frame_cnt;
+    uint8_t btn_active;
+} EMU_Btn;
+
+EMU_Btn m_emu_btns[EMU_BUTTONS_MAX];
+
+uint32_t m_frames = 0;
+uint32_t m_btn_cnt = 0;
+uint32_t m_btn_emu = 0;
+
+enum STATUS m_status = STATE_EMU_IDLE;
+
+static void add_combo_init_once()
 {
-    const uint8_t C = IS_PRESS(rep->s_joy1.buttons, SEGA_KEY_C);
-    const uint8_t Z = IS_PRESS(rep->s_joy1.buttons, SEGA_KEY_Z);
-    if( !C && !Z) {
-        m_tmp[0] = 0x00;
-        m_tmp[1] = 0x00;
-        m_tmp[2] = 0x00;
-        m_status_emu = STATE_KEY_IDLE;
+    static uint8_t one = 0;
+    if(!one) {
+        one = 1;
+    } else {
         return;
     }
 
-    volatile uint8_t *LR = &m_tmp[0];
-    volatile uint8_t *UD = &rep->s_joy1.up_down;
-    volatile uint8_t *BT = &m_tmp[2];
-		//*BT |= rep->s_joy1.buttons;
+    #define add_key ++m_btn_cnt
 
+    #define add_nes_key(__key_num, __key, __status, __btn_active, __frame_cnt) \
+        m_emu_btns[m_btn_cnt].btn_active = __btn_active; \
+        m_emu_btns[m_btn_cnt].frame_cnt = __frame_cnt; \
+        m_emu_btns[m_btn_cnt].btn[##__key_num].status = __status; \
+        m_emu_btns[m_btn_cnt].btn[##__key_num].key.nes = (NES_Keys)(__key)
+
+    add_nes_key(BTN_FIRST, NES_KEY_RIGHT, KEY_PRESS, BTN_ACT_FIRST, 20);
+    add_key;
+    add_nes_key(BTN_FIRST, NES_KEY_RIGHT, KEY_RELEASE, BTN_ACT_FIRST, 20);
+    add_key;
+    add_nes_key(BTN_FIRST, NES_KEY_RIGHT, KEY_PRESS, BTN_ACT_FIRST, 10);
+    //add_nes_key(BTN_SECOND, NES_KEY_B, KEY_PRESS, BTN_ACT_FIRST|BTN_ACT_SECOND, 10);
+    add_key;
+    add_nes_key(BTN_FIRST, NES_KEY_RIGHT, KEY_RELEASE, BTN_ACT_FIRST, 10);
+    //add_nes_key(BTN_SECOND, NES_KEY_B, KEY_RELEASE, BTN_ACT_FIRST|BTN_ACT_SECOND, 10);
+    add_key;
+}
+
+void emulator(volatile Joystick *rep)
+{
+    add_combo_init_once();
     switch(m_status) {
-        case STATE_IDLE: {
-            if(frames == EMU_STOP_EMULATION) {
-                m_status_emu = STATE_KEY_FINISH;
-            } else if (m_status_emu == STATE_KEY_IDLE) {
-                m_status = STATE_NEED_EMULATION;
-            }
-            break;
-        }
-
-        case STATE_NEED_EMULATION: {
-            m_status = STATE_EMULATION;
-            m_status_emu = (enum STATUS_EMULATION)(m_status_emu + STATE_KEY_1);
-            m_status_emu_time = STATE_EMU_PROCESS; 
-            ++m_frames;
-            break;
-        }
-        case STATE_EMULATION: {
-            ++m_frames;
-            break;
-        }
-        case STATE_ERROR: {
-            break;
-        }
-        case STATE_UNKNOWN: {
-            break;
-        }
-
-    };
-
-    switch(m_status_emu) {
-        case STATE_KEY_IDLE: {
-            break;
-        }
-        case STATE_KEY_1: {
-            if(Z) {
-                *LR = (uint8_t)-127;
-            } else {
-                *LR = (uint8_t)127;
-            }
-            break;
-        }
-        case STATE_KEY_2: {
-            *LR = 0;
-            break;
-        }
-        case STATE_KEY_3: {
-            if(Z) {
-                *LR = (uint8_t)-127;
-            } else {
-                *LR = (uint8_t)127;
-            }
-            break;
-        }
-        case STATE_KEY_4: {
-            *BT = 2;
-            break;
-        }
-        case STATE_KEY_5: {
-            break;
-        }
-        case STATE_KEY_6: {
-            break;
-        }
-        case STATE_KEY_7: {
-            break;
-        }
-        case STATE_KEY_8: {
-            break;
-        }
-        case STATE_KEY_9: {
-            break;
-        }
-        case STATE_KEY_10: {
-            break;
-        }
-        case STATE_KEY_FINISH: {
-            m_frames = 0;
-            m_status = STATE_IDLE;
-            //m_status_emu = STATE_KEY_IDLE;
-            m_status_emu_time = STATE_EMU_IDLE;
-            break;
-        }
-        case STATE_KEY_UNKNOWN: {
-            break;
-        }
-    };
-
-    switch(m_status_emu_time) {
         case STATE_EMU_IDLE: {
+            if(m_btn_cnt) {
+                ++m_frames;
+                m_status = STATE_EMU_START_EMULATION;
+            }
             break;
         }
-        case STATE_EMU_PROCESS: {
-            if(m_frames == frames) {
-                m_status = STATE_NEED_EMULATION;
-                m_frames = 0;
+
+        case STATE_EMU_START_EMULATION: {
+            ++m_frames;
+            m_status = STATE_EMU_EMULATION;
+            break;
+        }
+        case STATE_EMU_EMULATION: {
+            ++m_frames;
+            if(m_emu_btns[m_btn_emu].btn_active == BTN_ACT_THIRD) {
+                if(m_emu_btns[m_btn_emu].btn[BTN_THIRD].status == KEY_PRESS)
+                    rep->n_joy1.buttons = (1<<m_emu_btns[m_btn_emu].btn[BTN_THIRD].key.nes);
+                else
+                    rep->n_joy1.buttons = ~(1<<m_emu_btns[m_btn_emu].btn[BTN_THIRD].key.nes);
             }
+            if(m_emu_btns[m_btn_emu].btn_active == BTN_ACT_SECOND) {
+                if(m_emu_btns[m_btn_emu].btn[BTN_SECOND].status == KEY_PRESS)
+                    rep->n_joy1.buttons = (1<<m_emu_btns[m_btn_emu].btn[BTN_SECOND].key.nes);
+                else
+                    rep->n_joy1.buttons = ~(1<<m_emu_btns[m_btn_emu].btn[BTN_SECOND].key.nes);
+            }
+            if(m_emu_btns[m_btn_emu].btn_active == BTN_ACT_FIRST) {
+                if(m_emu_btns[m_btn_emu].btn[BTN_FIRST].status == KEY_PRESS)
+                    rep->n_joy1.buttons = (1<<m_emu_btns[m_btn_emu].btn[BTN_FIRST].key.nes);
+                else
+                    rep->n_joy1.buttons = ~(1<<m_emu_btns[m_btn_emu].btn[BTN_FIRST].key.nes);
+            }
+
+            if(m_frames >= m_emu_btns[m_btn_emu].frame_cnt) {
+                m_frames = 0;
+                m_status = STATE_EMU_FINISH;
+            }
+            break;
+        }
+        case STATE_EMU_FINISH: {
+            if(m_btn_emu < m_btn_cnt) {
+                ++m_btn_emu;
+                m_status = STATE_EMU_START_EMULATION;
+            } else {
+                m_btn_emu = 0;
+                //m_status = STATE_EMU_IDLE;
+            }
+            break;
+        }
+        case STATE_EMU_ERROR: {
             break;
         }
         case STATE_EMU_UNKNOWN: {
             break;
         }
-    };
 
-    rep->s_joy1.left_right = *LR;
-    rep->s_joy1.up_down = *UD;
-    rep->s_joy1.buttons = *BT;
+    };
 }
 

@@ -1,10 +1,10 @@
 #ifndef __READ_JOY__H
 #define __READ_JOY__H
 
-typedef enum {
-    KEY_PRESS,
+typedef enum KEY_STATUS {
     KEY_RELEASE,
-} KEY_STATUS;
+    KEY_PRESS,
+} KEY_Status;
 
 typedef enum {
     NES_KEY_A,
