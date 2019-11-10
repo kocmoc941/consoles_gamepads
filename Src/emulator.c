@@ -28,9 +28,9 @@ typedef struct EMU_BUTTON {
             NES_Keys nes;
         } key;
         KEY_Status status;
+        uint32_t frame_cnt;
+        uint8_t btn_active;
     } btn[BTN_CNT];
-    uint32_t frame_cnt;
-    uint8_t btn_active;
 } EMU_Btn;
 
 EMU_Btn m_emu_btns[EMU_BUTTONS_MAX];
@@ -53,8 +53,8 @@ static void add_combo_init_once()
     #define add_key ++m_btn_cnt
 
     #define add_nes_key(__key_num, __key, __status, __btn_active, __frame_cnt) \
-        m_emu_btns[m_btn_cnt].btn_active = __btn_active; \
-        m_emu_btns[m_btn_cnt].frame_cnt = __frame_cnt; \
+        m_emu_btns[m_btn_cnt].btn[##__key_num].btn_active = __btn_active; \
+        m_emu_btns[m_btn_cnt].btn[##__key_num].frame_cnt = __frame_cnt; \
         m_emu_btns[m_btn_cnt].btn[##__key_num].status = __status; \
         m_emu_btns[m_btn_cnt].btn[##__key_num].key.nes = (NES_Keys)(__key)
 
@@ -89,26 +89,26 @@ void emulator(volatile Joystick *rep)
         }
         case STATE_EMU_EMULATION: {
             ++m_frames;
-            if(m_emu_btns[m_btn_emu].btn_active == BTN_ACT_THIRD) {
+            if(m_emu_btns[m_btn_emu].btn[BTN_THIRD].btn_active == BTN_ACT_THIRD) {
                 if(m_emu_btns[m_btn_emu].btn[BTN_THIRD].status == KEY_PRESS)
                     rep->n_joy1.buttons = (1<<m_emu_btns[m_btn_emu].btn[BTN_THIRD].key.nes);
                 else
                     rep->n_joy1.buttons = ~(1<<m_emu_btns[m_btn_emu].btn[BTN_THIRD].key.nes);
             }
-            if(m_emu_btns[m_btn_emu].btn_active == BTN_ACT_SECOND) {
+            if(m_emu_btns[m_btn_emu].btn[BTN_THIRD].btn_active == BTN_ACT_SECOND) {
                 if(m_emu_btns[m_btn_emu].btn[BTN_SECOND].status == KEY_PRESS)
                     rep->n_joy1.buttons = (1<<m_emu_btns[m_btn_emu].btn[BTN_SECOND].key.nes);
                 else
                     rep->n_joy1.buttons = ~(1<<m_emu_btns[m_btn_emu].btn[BTN_SECOND].key.nes);
             }
-            if(m_emu_btns[m_btn_emu].btn_active == BTN_ACT_FIRST) {
+            if(m_emu_btns[m_btn_emu].btn[BTN_THIRD].btn_active == BTN_ACT_FIRST) {
                 if(m_emu_btns[m_btn_emu].btn[BTN_FIRST].status == KEY_PRESS)
                     rep->n_joy1.buttons = (1<<m_emu_btns[m_btn_emu].btn[BTN_FIRST].key.nes);
                 else
                     rep->n_joy1.buttons = ~(1<<m_emu_btns[m_btn_emu].btn[BTN_FIRST].key.nes);
             }
 
-            if(m_frames >= m_emu_btns[m_btn_emu].frame_cnt) {
+            if(m_frames >= m_emu_btns[m_btn_emu].btn[BTN_THIRD].frame_cnt) {
                 m_frames = 0;
                 m_status = STATE_EMU_FINISH;
             }
